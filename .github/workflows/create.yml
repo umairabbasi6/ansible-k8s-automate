@@ -1,0 +1,97 @@
+name: create
+run-name: ${{ inputs.aws_bucket_instance_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      aws_region_input:
+        type: string
+        required: true
+        default: eu-west-3
+      aws_bucket_instance_name:
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_WORKSPACE: ${{ github.workspace }}
+      TF_VAR_github_workspace: ${{ github.workspace }}
+      TF_LOG: INFO
+      
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ github.workspace }}
+
+    steps:
+      - name: checkout root repo
+        uses: actions/checkout@v4
+        
+      # - name: Get env files
+      #   run: npx --yes dotenv-vault pull --dotenvMe  ci .env.ci
+        
+      # - name: Load .env file
+      #   run: grep -o '^[^#]*' .env.ci >> "$GITHUB_ENV"
+  
+      - name: Setup terraform cli
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup aws credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: $XOTOCROSS_AWS_KEY_ID
+          aws-secret-access-key: $XOTOCROSS_AWS_ACCESS_KEY
+          aws-region: ${{ inputs.aws_region_input }}
+
+      - name: Repository checkout
+        uses: actions/checkout@v4
+
+      - name: Create bucket
+        run: aws s3 ls "s3://${{ inputs.aws_bucket_instance_name }}" 2>&1 || aws s3api create-bucket --bucket ${{ inputs.aws_bucket_instance_name }} --region ${{ inputs.aws_region_input }} --no-cli-pager  --create-bucket-configuration LocationConstraint=${{ inputs.aws_region_input }}
+
+      - name: Update variables
+        run: |
+          sed -i "s|AWS_BUCKET_INSTANCE_INPUT|${{ inputs.aws_bucket_instance_name }}|g" lambda_function/scheduler/lambda_function.py && sed -i "s|AWS_BUCKET_INSTANCE_INPUT|${{ inputs.aws_bucket_instance_name }}|g" variables.tf && sed -i "s|AWS_BUCKET_INSTANCE_INPUT|${{ inputs.aws_bucket_instance_name }}|g" provider.tf
+          sed -i "s|AWS_REGION_INPUT|${{ inputs.aws_region_input }}|g" lambda_function/scheduler/lambda_function.py && sed -i "s|AWS_REGION_INPUT|${{ inputs.aws_region_input }}|g" variables.tf && sed -i "s|AWS_REGION_INPUT|${{ inputs.aws_region_input }}|g" provider.tf
+
+      - name: Create terraform.tfvars
+        run: echo "ssh_public_key=\"$XOTOCROSS_GITHUB_SSH_ID\"" > terraform.tfvars
+
+      - name: Install community.general collection and cloud.terraform
+        run: |
+          ansible-galaxy collection install community.general
+          ansible-galaxy collection install cloud.terraform
+
+      - name: Terraform init
+        id: init
+        run: terraform init
+
+      - name: Terraform validate
+        id: validate
+        run: terraform validate -no-color
+
+      - name: Apply terraform resources creation
+        run: terraform apply --auto-approve
+
+      - name: Upload .terraform.lock.hcl
+        run: aws s3 cp .terraform.lock.hcl s3://${{ inputs.aws_bucket_instance_name }}
+
+      - name: Add SSH key
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          mkdir -p /home/runner/.ssh
+          echo "$XOTOCROSS_GITHUB_SSH_KEY" > /home/runner/.ssh/id_rsa
+          chmod 600 /home/runner/.ssh/id_rsa
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add /home/runner/.ssh/id_rsa
+          
+      - name: Playbook
+        run: SSH_AUTH_SOCK=/tmp/ssh_agent.sock ansible-playbook -i inventory -v playbook.yml

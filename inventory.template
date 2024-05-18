@@ -1,0 +1,21 @@
+[servers]
+%{ for ip in ec2_public_ip ~}
+${ip}
+%{ endfor ~}
+
+[master]
+%{ for ip in xotocross_master_public_ip ~}
+${ip}
+%{ endfor ~}
+
+[workernode]
+%{ for ip in xotocross_worker_public_ip ~}
+${ip}
+%{ endfor ~}
+
+[all:vars]
+ansible_connection=ssh
+ansible_user=ubuntu
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+ansible_host=${ansible_host_var}
