@@ -1,7 +1,3 @@
-resource "aws_key_pair" "xotocross-key" {
-  key_name = "id-rsa-${var.aws_bucket_instance_input}"
-  public_key = var.ssh_public_key
-}
 
 resource "aws_instance" "xotocross-master" {
   ami = var.ami["xotocross-master"] 
