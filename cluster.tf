@@ -27,7 +27,7 @@ resource "aws_instance" "xotocross-workernode" {
   ami = var.ami["xotocross-workernode"] 
   instance_type = var.instance_type["xotocross-workernode"]
   user_data = "${file("./credentials/create_user.sh")}"
-  key_name = aws_key_pair.xotocross-key.key_name
+  key_name = "xotocross-key"
   associate_public_ip_address = true
   subnet_id = aws_subnet.xotocross-subnet.id
   vpc_security_group_ids = [aws_security_group.xotocross-workernode.id]
