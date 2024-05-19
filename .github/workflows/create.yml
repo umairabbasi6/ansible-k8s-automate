@@ -1,4 +1,4 @@
-name: create
+name: create1
 run-name: ${{ inputs.aws_bucket_instance_name }}
 
 on:
