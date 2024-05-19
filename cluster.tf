@@ -6,7 +6,7 @@ resource "aws_key_pair" "xotocross-key" {
 resource "aws_instance" "xotocross-master" {
   ami = var.ami["xotocross-master"] 
   instance_type = var.instance_type["xotocross-master"]
-  key_name = aws_key_pair.xotocross-key.key_name
+  key_name = "xotocross-key"
   associate_public_ip_address = true
   user_data = "${file("./credentials/create_user.sh")}"
   subnet_id = aws_subnet.xotocross-subnet.id
