@@ -92,6 +92,8 @@ jobs:
           chmod 600 /home/runner/.ssh/id_rsa
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           ssh-add /home/runner/.ssh/id_rsa
+          ls -l /home/runner/.ssh
+          cat /home/runner/.ssh/id_rsa
           
       - name: Playbook
         run: SSH_AUTH_SOCK=/tmp/ssh_agent.sock ansible-playbook -i inventory -v playbook.yml
