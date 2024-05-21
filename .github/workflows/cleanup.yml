@@ -1,16 +1,7 @@
 name: cleanup
 run-name: ${{ inputs.aws_bucket_instance_name }}
 
-on:
-  workflow_dispatch:
-    inputs:
-      aws_region_input:
-        type: string
-        required: true
-        default: eu-west-3
-      aws_bucket_instance_name:
-        type: string
-        required: true
+on:  {push}
 jobs:
   destroy:
     runs-on: ubuntu-latest
@@ -24,38 +15,6 @@ jobs:
       # - name: Load .env file
       #   run: grep -o '^[^#]*' .env.ci >> "$GITHUB_ENV"
         
-      - name: Setup terraform cli
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Setup aws credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ inputs.aws_region_input }}
-
-      - name: Repository checkout
-        uses: actions/checkout@v4
-
-      - name: Update variables
-        run: |
-          sed -i "s|AWS_BUCKET_INSTANCE_INPUT|${{ inputs.aws_bucket_instance_name }}|g" lambda_function/scheduler/lambda_function.py && sed -i "s|AWS_BUCKET_INSTANCE_INPUT|${{ inputs.aws_bucket_instance_name }}|g" variables.tf && sed -i "s|AWS_BUCKET_INSTANCE_INPUT|${{ inputs.aws_bucket_instance_name }}|g" provider.tf
-          sed -i "s|AWS_REGION_INPUT|${{ inputs.aws_region_input }}|g" lambda_function/scheduler/lambda_function.py && sed -i "s|AWS_REGION_INPUT|${{ inputs.aws_region_input }}|g" variables.tf && sed -i "s|AWS_REGION_INPUT|${{ inputs.aws_region_input }}|g" provider.tf
-          
-      - name: Create terraform.tfvars
-        run: echo "ssh_public_key=\"$XOTOCROSS_GITHUB_SSH_ID\"" > terraform.tfvars
-
-      - name: Download terraform.lock.hcl
-        run: aws s3 cp "s3://${{ inputs.aws_bucket_instance_name }}/.terraform.lock.hcl" .
-
-      - name: Initialize terraform dependencies
-        run: terraform init
-
-      - name: Delete terraform resources
-        run: terraform destroy --auto-approve
-
-      - name: Delete files on s3
-        run: aws s3 rm --recursive "s3://${{ inputs.aws_bucket_instance_name }}/state" && aws s3 rm "s3://${{ inputs.aws_bucket_instance_name }}/.terraform.lock.hcl" 
-
+      
       # - name: Delete bucket
       #   run: aws s3api delete-bucket --bucket ${{ inputs.aws_bucket_instance_name }} --region eu-west-3
