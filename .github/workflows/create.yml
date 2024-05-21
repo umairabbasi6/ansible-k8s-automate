@@ -46,8 +46,8 @@ jobs:
       - name: Setup aws credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: $AWS_ACCESS_KEY_ID
-          aws-secret-access-key: $AWS_SECRET_ACCESS_KEY
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ inputs.aws_region_input }}
 
       - name: Repository checkout
@@ -88,10 +88,12 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           mkdir -p /home/runner/.ssh
-          echo "$XOTOCROSS_GITHUB_SSH_KEY" > /home/runner/.ssh/id_rsa
+          echo " ${{ secrets.XOTOCROSS_GITHUB_SSH_KEY }}" > /home/runner/.ssh/id_rsa
           chmod 600 /home/runner/.ssh/id_rsa
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           ssh-add /home/runner/.ssh/id_rsa
+          ls -l /home/runner/.ssh
+          cat /home/runner/.ssh/id_rsa
           
       - name: Playbook
         run: SSH_AUTH_SOCK=/tmp/ssh_agent.sock ansible-playbook -i inventory -v playbook.yml
