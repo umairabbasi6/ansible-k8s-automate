@@ -46,8 +46,8 @@ jobs:
       - name: Setup aws credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: $XOTOCROSS_AWS_KEY_ID
+          aws-secret-access-key: $XOTOCROSS_AWS_ACCESS_KEY
           aws-region: ${{ inputs.aws_region_input }}
 
       - name: Repository checkout
@@ -62,7 +62,7 @@ jobs:
           sed -i "s|AWS_REGION_INPUT|${{ inputs.aws_region_input }}|g" lambda_function/scheduler/lambda_function.py && sed -i "s|AWS_REGION_INPUT|${{ inputs.aws_region_input }}|g" variables.tf && sed -i "s|AWS_REGION_INPUT|${{ inputs.aws_region_input }}|g" provider.tf
 
       - name: Create terraform.tfvars
-        run: echo "ssh_public_key=\"${{ secrets.XOTOCROSS_GITHUB_SSH_ID }}\"" > terraform.tfvars
+        run: echo "ssh_public_key=\"$XOTOCROSS_GITHUB_SSH_ID\"" > terraform.tfvars
 
       - name: Install community.general collection and cloud.terraform
         run: |
@@ -88,12 +88,10 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           mkdir -p /home/runner/.ssh
-          echo " $XOTOCROSS_GITHUB_SSH_KEY" > /home/runner/.ssh/id_rsa
+          echo "$XOTOCROSS_GITHUB_SSH_KEY" > /home/runner/.ssh/id_rsa
           chmod 600 /home/runner/.ssh/id_rsa
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           ssh-add /home/runner/.ssh/id_rsa
-          ls -l /home/runner/.ssh
-          cat /home/runner/.ssh/id_rsa
           
       - name: Playbook
         run: SSH_AUTH_SOCK=/tmp/ssh_agent.sock ansible-playbook -i inventory -v playbook.yml
